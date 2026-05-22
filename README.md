@@ -30,6 +30,7 @@ It listens on `$XDG_RUNTIME_DIR/wlptrctl.sock`.
 wlptrctl scroll <vertical-steps> <horizontal-steps>
 wlptrctl motion <dx> <dy>
 wlptrctl button <left|right|middle|NUM> <press|release>
+wlptrctl click <left|right|middle|NUM>
 ```
 
 Examples:
@@ -42,4 +43,6 @@ wlptrctl motion 50 0
 wlptrctl button left press
 wlptrctl button left release
 wlptrctl click left
+wlptrctl click middle
+wlptrctl click right
 ```
