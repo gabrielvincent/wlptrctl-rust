@@ -36,12 +36,8 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
         {
             match interface.as_str() {
                 "wl_seat" => {
-                    state.seat = Some(registry.bind::<wl_seat::WlSeat, _, _>(
-                        name,
-                        version.min(9),
-                        qh,
-                        (),
-                    ));
+                    state.seat =
+                        Some(registry.bind::<wl_seat::WlSeat, _, _>(name, version.min(9), qh, ()));
                 }
                 "zwlr_virtual_pointer_manager_v1" => {
                     state.manager = Some(registry.bind::<ZwlrVirtualPointerManagerV1, _, _>(
@@ -206,8 +202,8 @@ impl Daemon {
 pub fn run() -> Result<()> {
     let path = ipc::socket_path()?;
     let _ = std::fs::remove_file(&path);
-    let sock = UnixDatagram::bind(&path)
-        .with_context(|| format!("failed to bind {}", path.display()))?;
+    let sock =
+        UnixDatagram::bind(&path).with_context(|| format!("failed to bind {}", path.display()))?;
     sock.set_read_timeout(Some(Duration::from_millis(200)))?;
 
     let terminated = Arc::new(AtomicBool::new(false));

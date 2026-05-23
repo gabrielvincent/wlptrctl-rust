@@ -1,6 +1,6 @@
 # wlptrctl
 
-Small Wayland virtual-pointer control daemon and client. Emits scroll, motion,
+Small Wayland virtual-pointer control daemon and client. Emits scroll, pointer,
 and button events through `zwlr_virtual_pointer_v1`.
 ## Build
 
@@ -28,9 +28,8 @@ It listens on `$XDG_RUNTIME_DIR/wlptrctl.sock`.
 
 ```sh
 wlptrctl scroll <vertical-steps> <horizontal-steps>
-wlptrctl motion <dx> <dy>
-wlptrctl button <left|right|middle|NUM> <press|release>
-wlptrctl click <left|right|middle|NUM>
+wlptrctl move <dx> <dy>
+wlptrctl button <left|right|middle|NUM> <press|release|click>
 ```
 
 Examples:
@@ -39,10 +38,10 @@ Examples:
 wlptrctl scroll 1 0
 wlptrctl scroll -1 0
 wlptrctl scroll 0 1
-wlptrctl motion 50 0
+wlptrctl move 50 0
 wlptrctl button left press
 wlptrctl button left release
-wlptrctl click left
-wlptrctl click middle
-wlptrctl click right
+wlptrctl button left click
+wlptrctl button middle click
+wlptrctl button right click
 ```

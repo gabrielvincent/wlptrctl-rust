@@ -5,10 +5,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-bincode = "1"
 clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive"] }
-signal-hook = "0.3"
+rkyv = "0.8.16"
+signal-hook = "0.4.4"
 wayland-client = "0.31"
 wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 
