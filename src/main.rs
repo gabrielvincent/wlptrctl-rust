@@ -19,7 +19,14 @@ struct Cli {
     cmd: Cmd,
 }
 
-#[derive(Subcommand)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ButtonAction {
+    Press,
+    Release,
+    Click,
+}
+
+#[derive(Debug, Subcommand)]
 enum Cmd {
     /// Run the Wayland-side daemon.
     Daemon,
@@ -28,15 +35,13 @@ enum Cmd {
     Scroll { vertical: i32, horizontal: i32 },
     /// Move the virtual pointer by a relative offset.
     #[command(allow_negative_numbers = true)]
-    Motion { dx: i32, dy: i32 },
-    /// Press or release a button (left/right/middle or a numeric code).
+    Move { dx: i32, dy: i32 },
+    /// Press, release, or click a button (left/right/middle or a numeric code).
     Button {
         button: String,
-        #[arg(value_parser = parse_button_state)]
-        state: u32,
+        #[arg(value_parser = parse_button_action)]
+        action: ButtonAction,
     },
-    /// Press and release a button (left/right/middle or a numeric code).
-    Click { button: String },
 }
 
 fn parse_button(arg: &str) -> Result<u32> {
@@ -50,11 +55,12 @@ fn parse_button(arg: &str) -> Result<u32> {
     })
 }
 
-fn parse_button_state(arg: &str) -> Result<u32, String> {
+fn parse_button_action(arg: &str) -> Result<ButtonAction, String> {
     match arg {
-        "press" => Ok(BUTTON_STATE_PRESSED),
-        "release" => Ok(BUTTON_STATE_RELEASED),
-        _ => Err("button state must be 'press' or 'release'".into()),
+        "press" => Ok(ButtonAction::Press),
+        "release" => Ok(ButtonAction::Release),
+        "click" => Ok(ButtonAction::Click),
+        _ => Err("button action must be 'press', 'release', or 'click'".into()),
     }
 }
 
@@ -74,19 +80,70 @@ fn main() -> Result<()> {
                 horizontal,
             })
         }
-        Cmd::Motion { dx, dy } => {
+        Cmd::Move { dx, dy } => {
             if dx == 0 && dy == 0 {
                 return Ok(());
             }
             client::send(&IpcCommand::Motion { dx, dy })
         }
-        Cmd::Button { button, state } => {
+        Cmd::Button { button, action } => {
             let button = parse_button(&button)?;
-            client::send(&IpcCommand::Button { button, state })
+            match action {
+                ButtonAction::Press => client::send(&IpcCommand::Button {
+                    button,
+                    state: BUTTON_STATE_PRESSED,
+                }),
+                ButtonAction::Release => client::send(&IpcCommand::Button {
+                    button,
+                    state: BUTTON_STATE_RELEASED,
+                }),
+                ButtonAction::Click => client::send(&IpcCommand::Click { button }),
+            }
         }
-        Cmd::Click { button } => {
-            let button = parse_button(&button)?;
-            client::send(&IpcCommand::Click { button })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ButtonAction, Cli, Cmd};
+    use clap::Parser;
+
+    #[test]
+    fn parses_move_command() {
+        let cli = Cli::try_parse_from(["wlptrctl", "move", "-10", "25"]).unwrap();
+        match cli.cmd {
+            Cmd::Move { dx, dy } => {
+                assert_eq!(dx, -10);
+                assert_eq!(dy, 25);
+            }
+            other => panic!("expected move command, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn parses_button_click_command() {
+        let cli = Cli::try_parse_from(["wlptrctl", "button", "274", "click"]).unwrap();
+        match cli.cmd {
+            Cmd::Button { button, action } => {
+                assert_eq!(button, "274");
+                assert_eq!(action, ButtonAction::Click);
+            }
+            other => panic!("expected button command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_old_motion_command() {
+        assert!(Cli::try_parse_from(["wlptrctl", "motion", "1", "2"]).is_err());
+    }
+
+    #[test]
+    fn rejects_old_click_command() {
+        assert!(Cli::try_parse_from(["wlptrctl", "click", "left"]).is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_button_action() {
+        assert!(Cli::try_parse_from(["wlptrctl", "button", "left", "hold"]).is_err());
     }
 }
